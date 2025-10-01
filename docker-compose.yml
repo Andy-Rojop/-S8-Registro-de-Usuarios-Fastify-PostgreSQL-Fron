@@ -1,0 +1,45 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: productos
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: productos
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+      image: nginx:alpine
+      ports:
+        - "8080:80"
+      volumes:
+        - ./frontend:/usr/share/nginx/html
+      depends_on:
+        - backend
+volumes:
+  postgres_data:
